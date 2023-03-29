@@ -54,8 +54,8 @@ int NxpMfcReader::Write(uint16_t mfcDataLen, const uint8_t *pMfcData) {
   BuildMfcCmd(&mfcTagCmdBuff[3], &mfcTagCmdBuffLen);
 
   mfcTagCmdBuff[2] = mfcTagCmdBuffLen;
-  mfcDataLen = mfcTagCmdBuffLen + NCI_HEADER_SIZE;
-  int writtenDataLen = phNxpNciHal_write_internal(mfcDataLen, mfcTagCmdBuff);
+  int writtenDataLen = phNxpNciHal_write_internal(
+      mfcTagCmdBuffLen + NCI_HEADER_SIZE, mfcTagCmdBuff);
 
   /* send TAG_CMD part 2 for Mifare increment ,decrement and restore commands */
   if (mfcTagCmdBuff[4] == eMifareDec || mfcTagCmdBuff[4] == eMifareInc ||
@@ -272,7 +272,6 @@ void NxpMfcReader::SendIncDecRestoreCmdPart2(uint16_t mfcDataLen,
                                   0x00, 0x00, 0x00, 0x00};
   uint8_t incDecRestorePart2Size =
       (sizeof(incDecRestorePart2) / sizeof(incDecRestorePart2[0]));
-
   if (mfcData[3] == eMifareInc || mfcData[3] == eMifareDec) {
     if (incDecRestorePart2Size >= mfcDataLen) {
       incDecRestorePart2Size = mfcDataLen - 1;
@@ -351,6 +350,10 @@ NFCSTATUS NxpMfcReader::AnalyzeMfcResp(uint8_t *pBuff, uint16_t *pBufflen) {
     } break;
 
     case eMfcAuthRsp: {
+      if (*pBufflen < 2) {
+        status = NFCSTATUS_FAILED;
+        break;
+      }
       /* check the status byte */
       if (NFCSTATUS_SUCCESS == pBuff[1]) {
         status = NFCSTATUS_SUCCESS;
