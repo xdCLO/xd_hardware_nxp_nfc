@@ -279,6 +279,11 @@ NFCSTATUS phNxpNciHal_process_ext_rsp(uint8_t* p_ntf, uint16_t* p_len) {
       icode_send_eof = 0;
     }
     if (nxpncihal_ctrl.nci_info.nci_version != NCI_VERSION_2_0) {
+      if (*p_len <= (p_ntf[2] + 2)) {
+        android_errorWriteLog(0x534e4554, "181660091");
+        NXPLOG_NCIHAL_E("length error!");
+        return NFCSTATUS_FAILED;
+      }
       if (p_ntf[p_ntf[2] + 2] == 0x00) {
         NXPLOG_NCIHAL_D("> Going through workaround - data of ISO 15693");
         p_ntf[2]--;
@@ -295,8 +300,8 @@ NFCSTATUS phNxpNciHal_process_ext_rsp(uint8_t* p_ntf, uint16_t* p_len) {
     icode_send_eof = 0;
   } else if (*p_len == 4 && p_ntf[0] == 0x40 && p_ntf[1] == 0x02 &&
              p_ntf[2] == 0x01 && p_ntf[3] == 0x06) {
-    NXPLOG_NCIHAL_D("> Deinit workaround for LLCP set_config 0x%x 0x%x 0x%x",
-                    p_ntf[21], p_ntf[22], p_ntf[23]);
+    /* NXPLOG_NCIHAL_D("> Deinit workaround for LLCP set_config 0x%x 0x%x 0x%x",
+                    p_ntf[21], p_ntf[22], p_ntf[23]); */
     p_ntf[0] = 0x40;
     p_ntf[1] = 0x02;
     p_ntf[2] = 0x02;
@@ -779,7 +784,8 @@ NFCSTATUS phNxpNciHal_write_ext(uint16_t* cmd_len, uint8_t* p_cmd_data,
     status = NFCSTATUS_FAILED;
   }
   // 2002 0904 3000 3100 3200 5000
-  else if ((p_cmd_data[0] == 0x20 && p_cmd_data[1] == 0x02) &&
+  else if (*cmd_len <= (NCI_MAX_DATA_LEN - 1) &&
+           (p_cmd_data[0] == 0x20 && p_cmd_data[1] == 0x02) &&
            ((p_cmd_data[2] == 0x09 && p_cmd_data[3] == 0x04) /*||
             (p_cmd_data[2] == 0x0D && p_cmd_data[3] == 0x04)*/
             )) {
